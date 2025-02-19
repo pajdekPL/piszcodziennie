@@ -8,16 +8,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      supabase:
-        image: supabase/postgres:latest
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -46,4 +36,4 @@ jobs:
         run: go run .
 
       - name: Run Integration Tests
-        run: go test -v ./integration_tests
+        run: go test -v ./... -tags=integration

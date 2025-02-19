@@ -1,19 +1,19 @@
 package main
 
-import "fmt"
+// import "fmt"
 
-// TODO: to be done
-func (cfg *Config) refreshToken(refreshToken string) (string, string, error) {
-	session, err := cfg.supabaseClient.Auth.RefreshToken(refreshToken)
-	if err != nil {
-		return "", "", err
-	}
+// // TODO: to be done
+// func (cfg *Config) refreshToken(refreshToken string) (string, string, error) {
+// 	session, err := cfg.supabaseClient.Auth.RefreshToken(refreshToken)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
 
-	newAccessToken := session.AccessToken
-	newRefreshToken := session.RefreshToken
+// 	newAccessToken := session.AccessToken
+// 	newRefreshToken := session.RefreshToken
 
-	fmt.Println("New Access Token:", newAccessToken)
-	fmt.Println("New Refresh Token:", newRefreshToken)
+// 	fmt.Println("New Access Token:", newAccessToken)
+// 	fmt.Println("New Refresh Token:", newRefreshToken)
 
-	return newAccessToken, newRefreshToken, nil
-}
+// 	return newAccessToken, newRefreshToken, nil
+// }

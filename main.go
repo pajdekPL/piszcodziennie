@@ -47,6 +47,6 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	r.Run(fmt.Sprintf(":%s", PORT))
+	r.Run(fmt.Sprintf(":%s", cfg.port))
 
 }
