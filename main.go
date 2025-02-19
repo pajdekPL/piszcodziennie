@@ -24,7 +24,9 @@ func main() {
 
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
-
+	if supabaseURL == "" || supabaseKey == "" {
+		log.Fatal("Please set SUPABASE_URL and SUPABASE_KEY environment variables")
+	}
 	client, err := supa.NewClient(supabaseURL, supabaseKey, nil)
 	if err != nil {
 		log.Fatal("Failed to initialize Supabase client:", err)
