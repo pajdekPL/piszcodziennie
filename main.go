@@ -47,6 +47,9 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	r.Run(fmt.Sprintf(":%s", cfg.port))
+	err = r.Run(fmt.Sprintf(":%s", cfg.port))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
