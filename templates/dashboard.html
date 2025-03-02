@@ -1,0 +1,6 @@
+<div>
+  <h2>Welcome, {{ .email }}</h2>
+  <h3>Welcome, {{ .protected }}</h3>
+
+  <button hx-post="/logout" hx-target="body" hx-swap="innerHTML">Logout</button>
+</div>
