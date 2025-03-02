@@ -8,26 +8,25 @@ import (
 	"firebase.google.com/go/auth"
 )
 
-
 func (cfg *Config) registerHandler(w http.ResponseWriter, req *http.Request) {
-    if err := req.ParseForm(); err != nil {
-        http.Error(w, "Invalid form data", http.StatusBadRequest)
-        return
-    }
+	if err := req.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
 
-    email := req.FormValue("email")
-    password := req.FormValue("password")
+	email := req.FormValue("email")
+	password := req.FormValue("password")
 
-    if email == "" || password == "" {
-        http.Error(w, "Missing email or password", http.StatusBadRequest)
-        return
-    }
+	if email == "" || password == "" {
+		http.Error(w, "Missing email or password", http.StatusBadRequest)
+		return
+	}
 
 	params := (&auth.UserToCreate{}).
 		Email(email).
 		Password(password)
 
-	user, err := cfg.firebaseClient.CreateUser(req.Context(),params)
+	user, err := cfg.firebaseClient.CreateUser(req.Context(), params)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "EMAIL_EXISTS") {
@@ -41,7 +40,7 @@ func (cfg *Config) registerHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	link, err:= cfg.firebaseClient.EmailVerificationLink(req.Context(), user.Email)
+	link, err := cfg.firebaseClient.EmailVerificationLink(req.Context(), user.Email)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error creating email verification link", err)
 		return

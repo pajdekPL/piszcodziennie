@@ -6,13 +6,13 @@ import (
 )
 
 type contextKey string
+
 const userIDKey contextKey = "user_id"
 const emailKey contextKey = "email"
 
-
 func (cfg *Config) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authCookie, err :=  r.Cookie("auth_token")
+		authCookie, err := r.Cookie("auth_token")
 		if err != nil {
 			http.Error(w, "Missing Authorization Cookie", http.StatusUnauthorized)
 			return

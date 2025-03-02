@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"piszcodziennie/internal/database"
+	"time"
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
@@ -24,14 +25,14 @@ type Config struct {
 	port           string
 	firebaseClient *auth.Client
 	env            string
-	SMTPEnvs	   SMTPEnvs
+	SMTPEnvs       SMTPEnvs
 }
 
 type SMTPEnvs struct {
-	Email string
-	SMTP_PWD string
+	Email       string
+	SMTP_PWD    string
 	SMTP_SERVER string
-	SMTP_PORT string
+	SMTP_PORT   string
 }
 
 func getSMTPEnvs() (SMTPEnvs, error) {
@@ -43,15 +44,18 @@ func getSMTPEnvs() (SMTPEnvs, error) {
 		return SMTPEnvs{}, fmt.Errorf("SMTP_EMAIL, SMTP_PWD, SMTP_SERVER and SMTP_PORT must be set")
 	}
 	return SMTPEnvs{
-		Email: email,
-		SMTP_PWD: smtp_pwd,
+		Email:       email,
+		SMTP_PWD:    smtp_pwd,
 		SMTP_SERVER: smtp_server,
-		SMTP_PORT: smtp_port,
+		SMTP_PORT:   smtp_port,
 	}, nil
 }
 
 func main() {
-	godotenv.Load(".env")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
@@ -96,7 +100,7 @@ func main() {
 		firebaseClient: client,
 		port:           PORT,
 		env:            env,
-		SMTPEnvs:	   smtpEnvs,
+		SMTPEnvs:       smtpEnvs,
 	}
 	r := chi.NewRouter()
 
@@ -115,6 +119,7 @@ func main() {
 	srv := &http.Server{
 		Addr:    ":" + cfg.port,
 		Handler: r,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 	log.Println("Server is running on port " + cfg.port)
 	log.Fatal(srv.ListenAndServe())
@@ -127,9 +132,8 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
 		http.Error(w, "Template error", http.StatusInternalServerError)
 		return
 	}
-	t.Execute(w, data)
+	log.Fatal(t.Execute(w, data))
 }
-
 
 func (cfg *Config) home(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("auth_token")
