@@ -132,7 +132,10 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
 		http.Error(w, "Template error", http.StatusInternalServerError)
 		return
 	}
-	log.Fatal(t.Execute(w, data))
+	if err := t.Execute(w, data); err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (cfg *Config) home(w http.ResponseWriter, r *http.Request) {
