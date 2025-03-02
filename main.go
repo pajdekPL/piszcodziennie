@@ -117,8 +117,8 @@ func main() {
 	r.Post("/reset", cfg.reset)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.port,
-		Handler: r,
+		Addr:              ":" + cfg.port,
+		Handler:           r,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 	log.Println("Server is running on port " + cfg.port)
