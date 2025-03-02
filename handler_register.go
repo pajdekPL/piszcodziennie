@@ -2,48 +2,69 @@ package main
 
 import (
 	"net/http"
-	"piszcodziennie/utils"
+	"piszcodziennie/internal/database"
+	"strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/supabase-community/gotrue-go/types"
+	"firebase.google.com/go/auth"
 )
 
-type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
 
-func (cfg *Config) handlerRegisterUser(c *gin.Context) {
-	var req RegisterRequest
+func (cfg *Config) registerHandler(w http.ResponseWriter, req *http.Request) {
+    if err := req.ParseForm(); err != nil {
+        http.Error(w, "Invalid form data", http.StatusBadRequest)
+        return
+    }
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
+    email := req.FormValue("email")
+    password := req.FormValue("password")
 
-	user, err := cfg.registerUser(req.Email, req.Password)
+    if email == "" || password == "" {
+        http.Error(w, "Missing email or password", http.StatusBadRequest)
+        return
+    }
+
+	params := (&auth.UserToCreate{}).
+		Email(email).
+		Password(password)
+
+	user, err := cfg.firebaseClient.CreateUser(req.Context(),params)
 
 	if err != nil {
-		jsonErr, err := utils.ExtractSupabaseError(err.Error())
-		if err == nil {
-			c.JSON(jsonErr.Code, gin.H{"error": jsonErr.Message})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		if strings.Contains(err.Error(), "EMAIL_EXISTS") {
+			w.WriteHeader(http.StatusOK)
+			renderTemplate(w, "register_failed.html", map[string]string{"error": "Email already exists"})
+			return
 		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		renderTemplate(w, "register_failed.html", map[string]string{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered", "user_id": user.User.ID})
-}
-
-func (cfg *Config) registerUser(email, password string) (*types.SignupResponse, error) {
-	user, err := cfg.supabaseClient.Auth.Signup(types.SignupRequest{
-		Email:    email,
-		Password: password,
-	})
+	link, err:= cfg.firebaseClient.EmailVerificationLink(req.Context(), user.Email)
 	if err != nil {
-		return &types.SignupResponse{}, err
+		respondWithError(w, http.StatusInternalServerError, "Error creating email verification link", err)
+		return
 	}
 
-	return user, nil
+	err = cfg.sendEmail(user.Email, link)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error sending email", err)
+		return
+	}
+
+	_, err = cfg.db.CreateUser(req.Context(), database.CreateUserParams{
+		ID:    user.UID,
+		Email: email,
+	})
+
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			respondWithError(w, http.StatusBadRequest, "User already exists", err)
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "Error creating user", err)
+		return
+	}
+	renderTemplate(w, "register_success.html", map[string]string{"email": user.Email})
 }

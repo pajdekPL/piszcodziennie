@@ -1,45 +1,66 @@
 package main
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"piszcodziennie/utils"
-
-	"github.com/gin-gonic/gin"
+	"piszcodziennie/internal/database"
+	"time"
 )
 
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
+func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
+    var req struct {
+        Token string `json:"token"`
+    }
 
-func (cfg *Config) handlerLoginUser(c *gin.Context) {
-	var req LoginRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request", http.StatusBadRequest)
+        return
+    }
 
-	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
+	token, err := cfg.firebaseClient.VerifyIDToken(r.Context(), req.Token)
+    
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Token expired or not valid", err)
+        return
+    }
+	emailVerified, ok := token.Claims["email_verified"]
+
+	if !ok {	
+		respondWithError(w, http.StatusInternalServerError, "", fmt.Errorf("email_verified claim not found in token"))
 	}
 
-	accessToken, refreshToken, err := cfg.loginUser(req.Email, req.Password)
-
-	if err != nil {
-		jsonErr, err := utils.ExtractSupabaseError(err.Error())
-		if err == nil {
-			c.JSON(jsonErr.Code, gin.H{"error": jsonErr.Message})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+	if emailVerified != true {
+		respondWithError(w, http.StatusUnauthorized, "Email is not verified", nil)
+	}
+	fmt.Println(token.UID)
+	user, err := cfg.db.GetUser(r.Context(), token.UID)
+	if !user.EmailVerified {
+		_, err := cfg.db.SetUserEmailVerified(r.Context(), database.SetUserEmailVerifiedParams{
+			ID: token.UID,
+			EmailVerified: true,
+		})
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "", err)
+			return
 		}
-		return
 	}
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
-}
-func (cfg *Config) loginUser(email, password string) (string, string, error) {
-	session, err := cfg.supabaseClient.Auth.SignInWithEmailPassword(email, password)
+	fmt.Printf("%v+\n", user)
 	if err != nil {
-		log.Println("Failed to login user:", err)
-		return "", "", err
-	}
-	println("userID: ", session.User.ID.String())
-	return session.AccessToken, session.RefreshToken, nil
+       respondWithError(w, http.StatusUnauthorized, "User not found", err)
+        return
+    }
+    // Set the token in an HTTP-only, secure cookie
+    http.SetCookie(w, &http.Cookie{
+        Name:     "auth_token",
+        Value:    req.Token,
+        HttpOnly: true,
+        Secure:   true, // Ensures it only works over HTTPS in production
+        SameSite: http.SameSiteStrictMode,
+        Path:     "/",
+        Expires:  time.Now().Add(1 * time.Hour), // 1-hour expiry
+    })
+
+	renderTemplate(w, "dashboard.html", map[string]string{"email": token.Claims["email"].(string)})
+
 }

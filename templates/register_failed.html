@@ -1,0 +1,6 @@
+<div>
+  <p style="color: red">Registration failed: {{ .error }}</p>
+  <button hx-get="/register" hx-target="body" hx-swap="innerHTML">
+    Try Again
+  </button>
+</div>

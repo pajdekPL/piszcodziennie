@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+      } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCkXGy0krM4nFF2U2L8XQfdi7DMYAnH9uk",
+        authDomain: "piszcodziennie.firebaseapp.com",
+        projectId: "piszcodziennie",
+        storageBucket: "piszcodziennie.firebasestorage.app",
+        messagingSenderId: "808776271473",
+        appId: "1:808776271473:web:f40a77d5440c7943a73dd0",
+        measurementId: "G-L6XTYFRJ67",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      window.loginUser = function (event) {
+        event.preventDefault();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        signInWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+            return userCredential.user.getIdToken();
+          })
+          .then((token) => {
+            fetch("/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ token: token }),
+            })
+              .then((response) => response.text())
+              .then((html) => {
+                document.body.innerHTML = html;
+              });
+          })
+          .catch((error) => {
+            document.getElementById("error").innerText =
+              "Login failed: " + error.message;
+          });
+      };
+    </script>
+  </head>
+  <body>
+    <h1>Login</h1>
+
+    <form onsubmit="loginUser(event)">
+      <label>Email:</label>
+      <input type="email" id="email" required />
+      <br />
+
+      <label>Password:</label>
+      <input type="password" id="password" required />
+      <br />
+
+      <button type="submit">Login</button>
+    </form>
+
+    <p id="error" style="color: red"></p>
+  </body>
+</html>
