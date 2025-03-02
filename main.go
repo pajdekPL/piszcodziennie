@@ -145,7 +145,6 @@ func (cfg *Config) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify token from cookie
 	token, err := cfg.firebaseClient.VerifyIDToken(context.Background(), cookie.Value)
 	if err != nil {
 		renderTemplate(w, "login_form.html", nil)

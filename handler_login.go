@@ -50,15 +50,14 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "User not found", err)
 		return
 	}
-	// Set the token in an HTTP-only, secure cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_token",
 		Value:    req.Token,
 		HttpOnly: true,
-		Secure:   true, // Ensures it only works over HTTPS in production
+		Secure:   true, 
 		SameSite: http.SameSiteStrictMode,
 		Path:     "/",
-		Expires:  time.Now().Add(1 * time.Hour), // 1-hour expiry
+		Expires:  time.Now().Add(1 * time.Hour), 
 	})
 
 	renderTemplate(w, "dashboard.html", map[string]string{"email": token.Claims["email"].(string)})
